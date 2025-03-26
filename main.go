@@ -38,9 +38,11 @@ func main() {
 	})
 
 	// user handlers
-	apiv1.Post("/user", userHandler.HandleCreateUser)
+	apiv1.Get("/user/:id", userHandler.HandleGetUserById)
 	apiv1.Get("/users", userHandler.HandleGetUsers)
-
+	apiv1.Post("/user", userHandler.HandleCreateUser)
+	apiv1.Put("/user/:id/", userHandler.HandleUpdateUser)
+	apiv1.Delete("user/:id", userHandler.HandleDeleteUser)
 	listenAddr := os.Getenv("HTTP_LISTEN_ADDRESS")
 	if err := app.Listen(listenAddr); err != nil {
 		log.Fatalf("Error starting server: %v", err)

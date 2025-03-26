@@ -1,9 +1,13 @@
 package api
 
 import (
+	"errors"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/maksroxx/LFact/db"
 	"github.com/maksroxx/LFact/types"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type UserHandler struct {
@@ -55,4 +59,51 @@ func (h *UserHandler) HandleGetUsers(c *fiber.Ctx) error {
 			})
 	}
 	return c.JSON(users)
+}
+
+func (h *UserHandler) HandleUpdateUser(c *fiber.Ctx) error {
+	var (
+		params types.UpdateUserParams
+		userID = c.Params("id")
+	)
+	oid, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return err
+	}
+	if err := c.BodyParser(&params); err != nil {
+		return err
+	}
+	if params.Balance != 0 {
+		balance, err := h.store.UserStore.GetUserById(c.Context(), userID)
+		if err != nil {
+			return err
+		}
+		params.Balance += balance.Balance
+	}
+	filter := db.Map{"_id": oid}
+	user, err := h.store.UserStore.UpdateUser(c.Context(), filter, db.Map(params.ToBson()))
+	if err != nil {
+		return err
+	}
+	return c.JSON(user)
+}
+
+func (h *UserHandler) HandleGetUserById(c *fiber.Ctx) error {
+	userId := c.Params("id")
+	user, err := h.store.UserStore.GetUserById(c.Context(), userId)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return c.JSON(map[string]string{"error": "not found"})
+		}
+		return err
+	}
+	return c.JSON(user)
+}
+
+func (h *UserHandler) HandleDeleteUser(c *fiber.Ctx) error {
+	userId := c.Params("id")
+	if err := h.store.UserStore.DeleteUser(c.Context(), userId); err != nil {
+		return err
+	}
+	return c.JSON(map[string]string{"deleted": userId})
 }
