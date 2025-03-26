@@ -24,6 +24,17 @@ func (h *UserHandler) HandleCreateUser(c *fiber.Ctx) error {
 	if errors := params.Validate(); len(errors) > 0 {
 		return c.JSON(errors)
 	}
+	exists, err := h.store.UserStore.CheckUserExists(c.Context(), params.Email)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return c.
+			Status(fiber.StatusBadRequest).
+			JSON(fiber.Map{
+				"error": "user already exists",
+			})
+	}
 	user, err := types.NewUserFromParams(params)
 	if err != nil {
 		return err
@@ -33,4 +44,15 @@ func (h *UserHandler) HandleCreateUser(c *fiber.Ctx) error {
 		return err
 	}
 	return c.JSON(insertedUser)
+}
+
+func (h *UserHandler) HandleGetUsers(c *fiber.Ctx) error {
+	users, err := h.store.UserStore.GetUsers(c.Context())
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).
+			JSON(fiber.Map{
+				"error": "users resource not found",
+			})
+	}
+	return c.JSON(users)
 }

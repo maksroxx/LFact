@@ -13,6 +13,8 @@ const userColl = "users"
 
 type UserStore interface {
 	InsertUser(context.Context, *types.User) (*types.User, error)
+	GetUsers(context.Context) ([]*types.User, error)
+	CheckUserExists(ctx context.Context, email string) (bool, error)
 }
 
 type MongoUserStore struct {
@@ -35,4 +37,25 @@ func (s *MongoUserStore) InsertUser(ctx context.Context, user *types.User) (*typ
 	}
 	user.Id = res.InsertedID.(primitive.ObjectID)
 	return user, err
+}
+
+func (s *MongoUserStore) GetUsers(ctx context.Context) ([]*types.User, error) {
+	cur, err := s.coll.Find(ctx, Map{})
+	if err != nil {
+		return nil, err
+	}
+	var users []*types.User
+	if err := cur.All(ctx, &users); err != nil {
+		return []*types.User{}, nil
+	}
+	return users, nil
+}
+
+func (s *MongoUserStore) CheckUserExists(ctx context.Context, email string) (bool, error) {
+	filter := Map{"email": email}
+	count, err := s.coll.CountDocuments(ctx, filter)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }

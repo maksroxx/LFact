@@ -39,6 +39,7 @@ func main() {
 
 	// user handlers
 	apiv1.Post("/user", userHandler.HandleCreateUser)
+	apiv1.Get("/users", userHandler.HandleGetUsers)
 
 	listenAddr := os.Getenv("HTTP_LISTEN_ADDRESS")
 	if err := app.Listen(listenAddr); err != nil {
